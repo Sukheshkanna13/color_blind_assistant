@@ -1,5 +1,8 @@
+// src/backend/components/CameraFeed.tsx
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Camera, CameraOff, AlertCircle } from 'lucide-react';
+import { sendImageToBackend } from '../utils/api';
 
 interface CameraFeedProps {
   isActive: boolean;
@@ -11,6 +14,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (isActive) {
@@ -18,7 +22,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
     } else {
       stopCamera();
     }
-
     return () => stopCamera();
   }, [isActive]);
 
@@ -55,6 +58,31 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
     }
   };
 
+  const handleCapture = async () => {
+    if (!videoRef.current || !currentMode || !isActive) return;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      ctx.drawImage(videoRef.current, 0, 0);
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          setIsLoading(true);
+          try {
+            const response = await sendImageToBackend(blob, currentMode);
+            setResult(response.result);
+          } catch (err) {
+            setError('Error processing image');
+          }
+          setIsLoading(false);
+        }
+      }, 'image/jpeg');
+    }
+  };
+
   if (error) {
     return (
       <div className="relative w-full aspect-video bg-gray-900 rounded-2xl border border-gray-700 flex items-center justify-center">
@@ -75,7 +103,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
 
   return (
     <div className="relative w-full aspect-video bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
-      {/* Camera Stream */}
       <video
         ref={videoRef}
         autoPlay
@@ -84,7 +111,24 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
         className="w-full h-full object-cover"
       />
 
-      {/* Loading Overlay */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+        <button
+          onClick={handleCapture}
+          disabled={!isActive || !currentMode || isLoading}
+          className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Processing...' : 'Capture & Analyze'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="absolute bottom-20 left-4 right-4 px-4 py-2 bg-black/70 
+                      backdrop-blur-sm rounded-lg border border-cyan-400/50">
+          <p className="text-cyan-400 text-sm">Result: {result}</p>
+        </div>
+      )}
+
       {isLoading && (
         <div className="absolute inset-0 bg-gray-900/80 flex items-center justify-center">
           <div className="text-center">
@@ -94,7 +138,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
         </div>
       )}
 
-      {/* Mode Indicator */}
       {currentMode && !isLoading && (
         <div className="absolute top-4 left-4 px-4 py-2 bg-black/70 backdrop-blur-sm rounded-lg border border-cyan-400/50">
           <div className="flex items-center space-x-2">
@@ -104,7 +147,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
         </div>
       )}
 
-      {/* Camera Status Icon */}
       <div className="absolute top-4 right-4">
         {stream ? (
           <Camera className="w-6 h-6 text-green-400" />
@@ -112,16 +154,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
           <CameraOff className="w-6 h-6 text-red-400" />
         )}
       </div>
-
-      {/* AI Processing Indicator */}
-      {currentMode && stream && (
-        <div className="absolute bottom-4 right-4 px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-sm rounded-full border border-cyan-400/30">
-          <div className="flex items-center space-x-2">
-            <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></div>
-            <span className="text-cyan-400 text-xs font-medium">AI Processing</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
