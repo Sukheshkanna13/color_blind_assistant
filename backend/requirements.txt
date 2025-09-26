@@ -1,0 +1,8 @@
+# backend/requirements.txt
+
+flask
+torch
+pillow
+ultralytics
+opencv-python-headless
+flask_cors
