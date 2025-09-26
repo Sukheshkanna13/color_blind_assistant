@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import LoginPanel from './components/LoginPanel'; // Assuming you have this component
+import LoginPanel from './components/LoginPanel';
 import CameraFeed from './components/CameraFeed';
 import ModeSelector from './components/ModeSelector';
 import { LogOut, Zap, User, Settings } from 'lucide-react';
@@ -28,7 +28,6 @@ function App() {
   };
 
   if (!isLoggedIn) {
-    // Make sure you have a LoginPanel component created to handle this
     return <LoginPanel onLogin={handleLogin} />;
   }
 

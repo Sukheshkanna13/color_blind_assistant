@@ -9,10 +9,8 @@ interface ModeSelectorProps {
 
 const modes = [
   { id: 'driving', name: 'Driving Mode', description: 'Road and traffic analysis' },
-  { id: 'art', name: 'Art Mode', description: 'Artistic content recognition' },
-  { id: 'shopping', name: 'Shopping Mode', description: 'Product identification' },
-  { id: 'food', name: 'Food Mode', description: 'Food safety analysis' },
-  { id: 'wiring', name: 'Wiring & Diagnosis Mode', description: 'Technical diagnostics' }
+  { id: 'shopping', name: 'Shopping Mode', description: 'Product and fashion identification' },
+  { id: 'food', name: 'Food Mode', description: 'Identify food and its dominant colors' } // <-- Add this line
 ];
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, onModeChange, isActive }) => {
@@ -21,7 +19,6 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, onModeChange, 
 
   return (
     <div className="relative w-full max-w-md">
-      {/* Mode Selector Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={!isActive}
@@ -50,7 +47,6 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, onModeChange, 
         }`} />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && isActive && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800/90 backdrop-blur-xl 
                       border border-gray-600 rounded-xl shadow-2xl z-50 overflow-hidden">

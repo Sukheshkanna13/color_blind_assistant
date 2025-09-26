@@ -1,5 +1,3 @@
-// src/components/CameraFeed.tsx
-
 import React, { useRef, useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { sendImageToBackend } from '../utils/api';
@@ -14,7 +12,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  // Initialize state to null to differentiate between "no results yet" and "an empty result set"
+  const [results, setResults] = useState<{label: string, confidence: number}[] | null>(null);
 
   useEffect(() => {
     if (isActive) {
@@ -22,6 +21,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
     } else {
       stopCamera();
     }
+    // Cleanup function to stop the camera when the component unmounts
     return () => stopCamera();
   }, [isActive]);
 
@@ -63,7 +63,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
     
     setIsLoading(true);
     setError('');
-    setResult(null); // Clear previous result
+    setResults(null); // Clear previous results to hide the old display
     
     try {
       const canvas = document.createElement('canvas');
@@ -83,8 +83,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
 
       const response = await sendImageToBackend(blob, currentMode);
       
-      const resultText = `${response.prediction} (Confidence: ${Math.round(response.confidence * 100)}%)`;
-      setResult(resultText);
+      setResults(response.detections || []);
 
     } catch (err) {
       console.error('Capture or API error:', err);
@@ -124,7 +123,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
       />
 
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-900/80 flex items-center justify-center">
+        <div className="absolute inset-0 bg-gray-900/80 flex items-center justify-center z-20">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
             <p className="text-white font-medium">Processing...</p>
@@ -132,7 +131,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
         </div>
       )}
 
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
         <button
           onClick={handleCapture}
           disabled={!isActive || !currentMode || isLoading}
@@ -142,11 +141,27 @@ const CameraFeed: React.FC<CameraFeedProps> = ({ isActive, currentMode }) => {
           {isLoading ? 'Processing...' : 'Capture & Analyze'}
         </button>
       </div>
-
-      {result && (
-        <div className="absolute top-4 left-4 right-4 px-4 py-2 bg-black/70 
-                      backdrop-blur-sm rounded-lg border border-cyan-400/50">
-          <p className="text-cyan-400 text-center font-bold text-lg">Result: {result}</p>
+      
+      {/* --- Improved Results Display --- */}
+      {!isLoading && results !== null && (
+        <div className="absolute top-4 left-4 right-4 p-4 bg-black/70 
+                        backdrop-blur-sm rounded-lg border border-cyan-400/50 max-h-48 overflow-y-auto z-10">
+          
+          {results.length > 0 ? (
+            <>
+              <h3 className="text-cyan-400 font-bold text-lg mb-2 text-center">Detections</h3>
+              <ul>
+                  {results.map((item, index) => (
+                      <li key={index} className="flex justify-between items-center text-white text-sm mb-1">
+                          <span>{item.label}</span>
+                          <span className="font-mono text-gray-300">{Math.round(item.confidence * 100)}%</span>
+                      </li>
+                  ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-center text-gray-400">No objects detected.</p>
+          )}
         </div>
       )}
     </div>
